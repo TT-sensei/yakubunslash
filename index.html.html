@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>約分クロスバスターズ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Orbitron:wght@700;900&display=swap');
+:root{
+  --bg:#0a0a1a;--panel:#111128;--surface:#1a1a38;--border:#2e2e60;
+  --nb:#00d4ff;--ng:#00ff99;--nr:#ff3366;--ny:#ffdd00;--np:#cc66ff;
+  --text:#e8e8ff;--muted:#6666aa;--r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
+  font-family:'Zen Kaku Gothic New',sans-serif;overflow:hidden;touch-action:manipulation}
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:10;
+  transition:opacity .3s,transform .3s}
+.screen.hidden{opacity:0;pointer-events:none;transform:scale(.97)}
+
+/* ── TITLE ── */
+#title-screen{gap:16px;
+  background:radial-gradient(ellipse at 50% 38%,#1a0050 0%,#0a0a1a 68%);
+  padding:24px 16px;overflow-y:auto}
+.logo-en{font-family:'Orbitron',sans-serif;font-size:clamp(13px,3vw,24px);
+  letter-spacing:.2em;color:var(--nb);text-shadow:0 0 18px var(--nb);
+  display:block;text-align:center}
+.logo-jp{font-size:clamp(28px,7.5vw,54px);font-weight:900;
+  background:linear-gradient(135deg,var(--nb) 0%,var(--np) 50%,var(--ng) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  display:block;text-align:center;margin-top:2px;line-height:1.1}
+.logo-sub{font-size:12px;color:var(--muted);display:block;text-align:center;margin-top:6px}
+.planet{font-size:clamp(48px,12vw,88px);
+  animation:spin 22s linear infinite;filter:drop-shadow(0 0 24px #aa44ff)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.sec-label{font-size:11px;letter-spacing:.15em;color:var(--muted);
+  text-transform:uppercase;width:100%;max-width:500px;padding:0 4px}
+.lv-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+  max-width:400px;width:100%}
+.lv-btn{width:60px;height:60px;border-radius:50%;
+  border:2px solid var(--border);background:var(--surface);
+  color:var(--text);font-weight:900;font-size:13px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:all .18s;font-family:'Zen Kaku Gothic New',sans-serif;
+  gap:1px}
+.lv-btn span:last-child{font-size:9px;color:var(--muted);font-weight:400}
+.lv-btn.on{border-color:var(--ny);background:rgba(255,221,0,.15);
+  box-shadow:0 0 14px rgba(255,221,0,.4)}
+.lv-btn:hover{transform:scale(1.08)}
+.start-btn{background:linear-gradient(135deg,var(--nb),var(--np));
+  color:#fff;border:none;border-radius:50px;padding:16px 52px;
+  font-size:18px;font-weight:900;cursor:pointer;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+  box-shadow:0 0 24px rgba(0,212,255,.4);transition:all .2s}
+.start-btn:hover{transform:scale(1.04);box-shadow:0 0 38px rgba(0,212,255,.6)}
+.title-tip{font-size:12px;color:var(--muted);text-align:center;
+  max-width:300px;line-height:1.7}
+
+/* ── GAME ── */
+#game-screen{justify-content:flex-start;background:var(--bg)}
+.top-bar{width:100%;max-width:600px;display:flex;align-items:center;
+  gap:10px;padding:12px 16px 6px}
+.back-btn{width:38px;height:38px;border-radius:50%;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--text);font-size:16px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:all .15s}
+.back-btn:hover{border-color:var(--nb)}
+.lv-badge{font-size:11px;color:var(--muted);flex:1;padding:0 6px}
+.timer-svg{width:38px;height:38px;flex-shrink:0}
+.timer-bg{stroke:var(--border)}
+.timer-fg{stroke:var(--nb);stroke-linecap:round;
+  transition:stroke-dashoffset .1s linear,stroke .3s;
+  transform-origin:center;transform:rotate(-90deg)}
+.score-disp{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;
+  color:var(--ny);text-shadow:0 0 10px var(--ny);min-width:72px;text-align:right}
+
+.prog-row{width:100%;max-width:600px;display:flex;align-items:center;
+  gap:8px;padding:0 16px 8px}
+.q-lbl{font-size:12px;color:var(--muted);flex-shrink:0}
+.dots{display:flex;gap:4px;flex:1}
+.dot{flex:1;height:6px;border-radius:3px;background:var(--border);transition:background .3s}
+.dot.done{background:var(--ng)}
+.dot.cur{background:var(--nb);animation:blink 1s ease-in-out infinite}
+.dot.miss{background:var(--nr)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.combo-lbl{font-size:12px;font-weight:900;color:var(--np);
+  min-width:72px;text-align:right;flex-shrink:0}
+
+/* ── PHASE LABEL ── */
+.phase-bar{width:100%;max-width:600px;padding:0 16px 4px}
+.phase-txt{display:flex;align-items:center;justify-content:center;
+  gap:8px;padding:8px 16px;border-radius:50px;font-size:15px;font-weight:700;
+  min-height:42px;border:1px solid;text-align:center}
+.phase-txt.select-pair{
+  background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.35);color:var(--nb)}
+.phase-txt.select-div{
+  background:rgba(255,221,0,.1);border-color:rgba(255,221,0,.4);color:var(--ny)}
+.phase-txt.correct{
+  background:rgba(0,255,153,.1);border-color:rgba(0,255,153,.4);color:var(--ng)}
+.phase-txt.wrong{
+  background:rgba(255,51,102,.1);border-color:rgba(255,51,102,.4);color:var(--nr)}
+
+/* ── ARENA ── */
+.arena{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;padding:0 16px 8px;
+  width:100%;position:relative}
+.frac-eq{display:flex;align-items:center;
+  gap:clamp(14px,4vw,36px);justify-content:center}
+.frac-col{display:flex;flex-direction:column;align-items:center;gap:3px}
+.frac-line{height:3px;background:var(--text);border-radius:2px;
+  width:100%;min-width:54px;margin:1px 0}
+
+/* ── CELLS ── */
+.cell{
+  min-width:clamp(54px,14vw,82px);height:clamp(54px,14vw,82px);
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(22px,5.5vw,42px);font-weight:900;
+  cursor:pointer;border:2px solid transparent;
+  transition:all .15s;position:relative;
+  user-select:none;-webkit-user-select:none}
+.cell.idle{background:var(--surface);border-color:var(--border)}
+.cell.idle:hover{border-color:var(--nb);
+  box-shadow:0 0 12px rgba(0,212,255,.3);transform:scale(1.05)}
+.cell.sel1{background:rgba(0,212,255,.2);border-color:var(--nb);
+  box-shadow:0 0 20px rgba(0,212,255,.5);transform:scale(1.1)}
+.cell.sel2{background:rgba(255,221,0,.18);border-color:var(--ny);
+  box-shadow:0 0 20px rgba(255,221,0,.45);transform:scale(1.1)}
+.cell.done{cursor:default;background:var(--panel);border-color:transparent}
+.cell.hint-s{animation:hs 1.2s ease-in-out infinite}
+@keyframes hs{0%,100%{box-shadow:0 0 0 rgba(255,221,0,0);border-color:var(--border)}
+  50%{box-shadow:0 0 16px rgba(255,221,0,.55);border-color:var(--ny)}}
+.cell.hint-h{animation:hh .75s ease-in-out infinite;border-color:var(--ny)!important}
+@keyframes hh{0%,100%{background:rgba(255,221,0,.08)}50%{background:rgba(255,221,0,.28)}}
+.rbadge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  font-size:11px;font-weight:700;color:var(--ng);
+  background:rgba(0,255,153,.15);border:1px solid rgba(0,255,153,.4);
+  border-radius:20px;padding:1px 7px;white-space:nowrap;pointer-events:none;
+  animation:bp .38s cubic-bezier(.2,1.5,.5,1)}
+@keyframes bp{from{opacity:0;transform:translateX(-50%) translateY(6px) scale(.6)}
+  to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+.op-sym{font-size:clamp(26px,7vw,46px);font-weight:900;color:var(--muted);align-self:center}
+
+/* ── DIVISOR BUTTONS ── */
+.div-area{min-height:68px;display:flex;align-items:center;justify-content:center}
+.div-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.div-btn{
+  width:clamp(56px,14vw,72px);height:clamp(56px,14vw,72px);
+  border-radius:50%;border:2px solid var(--border);background:var(--surface);
+  color:var(--text);font-size:clamp(18px,4.5vw,26px);font-weight:900;
+  cursor:pointer;transition:all .18s;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+  display:flex;align-items:center;justify-content:center}
+.div-btn:hover,.div-btn:active{transform:scale(1.12);
+  border-color:var(--ny);box-shadow:0 0 16px rgba(255,221,0,.45)}
+
+/* ── HINT / ACTION ── */
+.hint-area{min-height:32px;display:flex;align-items:center;justify-content:center}
+.hint-txt{font-size:13px;font-weight:700;color:var(--ny);
+  background:rgba(255,221,0,.1);border:1px solid rgba(255,221,0,.28);
+  border-radius:50px;padding:7px 18px;animation:fi .45s ease;text-align:center}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.action-row{width:100%;max-width:600px;
+  display:flex;gap:10px;justify-content:center;padding:0 16px 10px}
+.ok-btn,.skip-btn{padding:12px 24px;border-radius:50px;border:none;
+  font-size:14px;font-weight:900;cursor:pointer;
+  font-family:'Zen Kaku Gothic New',sans-serif;transition:all .2s;
+  display:flex;align-items:center;gap:6px}
+.ok-btn{background:linear-gradient(135deg,var(--ng),#00aa66);color:#000;
+  box-shadow:0 0 14px rgba(0,255,153,.3)}
+.ok-btn:hover{transform:scale(1.05);box-shadow:0 0 22px rgba(0,255,153,.5)}
+.ok-btn:disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+.skip-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.skip-btn:hover{border-color:var(--nr);color:var(--nr)}
+
+/* ── ANSWER PANEL ── */
+.ans-panel{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px 28px;text-align:center;
+  animation:pop .38s cubic-bezier(.2,1.5,.5,1);max-width:320px;width:90%}
+@keyframes pop{from{opacity:0;transform:scale(.75)}to{opacity:1;transform:scale(1)}}
+.ans-lbl{font-size:13px;color:var(--muted);margin-bottom:8px}
+.ans-frac{display:flex;align-items:center;gap:10px;justify-content:center}
+.ans-n{display:flex;flex-direction:column;align-items:center;gap:1px}
+.ans-top{font-size:clamp(28px,8vw,48px);font-weight:900;color:var(--ng);line-height:1}
+.ans-bot{font-size:clamp(28px,8vw,48px);font-weight:900;color:var(--nb);line-height:1}
+.ans-line{width:100%;height:3px;background:var(--text);border-radius:2px;margin:2px 0}
+
+/* ── PARTICLES / EFFECTS ── */
+.particle{position:fixed;pointer-events:none;border-radius:50%;z-index:100;
+  animation:fu linear forwards}
+@keyframes fu{0%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-100px) scale(0)}}
+.spop{position:fixed;pointer-events:none;font-size:20px;font-weight:900;
+  z-index:101;animation:sf 1s ease forwards;text-shadow:0 0 8px currentColor}
+@keyframes sf{0%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-52px) scale(1.2)}}
+.cburst{position:fixed;top:44%;left:50%;transform:translate(-50%,-50%);
+  font-size:clamp(36px,11vw,68px);font-weight:900;z-index:200;pointer-events:none;
+  color:var(--ny);text-shadow:0 0 38px var(--ny);text-align:center;
+  animation:cb 1.1s cubic-bezier(.2,1.5,.5,1) forwards}
+@keyframes cb{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  30%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+  70%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-60%) scale(.85)}}
+
+/* ── RESULT ── */
+#result-screen{background:radial-gradient(ellipse at 50% 50%,#0d0030,#0a0a1a 60%);
+  gap:18px;padding:28px 20px;overflow-y:auto}
+.res-rank{font-size:clamp(60px,18vw,108px);text-align:center;
+  animation:rp .55s cubic-bezier(.2,1.5,.5,1)}
+@keyframes rp{from{transform:scale(0) rotate(-18deg);opacity:0}
+  to{transform:scale(1) rotate(0);opacity:1}}
+.res-title{font-size:clamp(22px,6vw,40px);font-weight:900;text-align:center;
+  background:linear-gradient(135deg,var(--nb),var(--np));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.res-stats{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:380px}
+.scard{flex:1 1 90px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 10px;text-align:center}
+.sval{font-size:28px;font-weight:900;color:var(--ny)}
+.slbl{font-size:11px;color:var(--muted);margin-top:4px}
+.res-cmt{font-size:14px;color:var(--text);text-align:center;
+  max-width:310px;line-height:1.7}
+.res-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.rbtn{padding:14px 28px;border-radius:50px;border:none;
+  font-size:15px;font-weight:900;cursor:pointer;
+  font-family:'Zen Kaku Gothic New',sans-serif;transition:all .2s}
+.rbtn.p{background:linear-gradient(135deg,var(--nb),var(--np));color:#fff;
+  box-shadow:0 0 18px rgba(0,212,255,.4)}
+.rbtn.s{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.rbtn:hover{transform:scale(1.05)}
+
+#nov{position:fixed;inset:0;background:var(--bg);z-index:50;
+  opacity:0;pointer-events:none;transition:opacity .22s}
+#nov.f{opacity:.72}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="nov"></div>
+
+<!-- ══ TITLE ══ -->
+<div class="screen" id="scr-title">
+  <span class="logo-en">CROSS YAKUBUNN</span>
+  <span class="logo-jp">約分クロスバスターズ</span>
+  <span class="logo-sub">〜 銀河の約分戦士よ、見抜け・割れ・倒せ 〜</span>
+  <div class="planet">🪐</div>
+  <div class="sec-label">レベルを選択</div>
+  <div class="lv-row">
+    <button class="lv-btn on" id="lb1" onclick="setLv(1)"><span>LV.1</span><span>6〜24</span></button>
+    <button class="lv-btn"    id="lb2" onclick="setLv(2)"><span>LV.2</span><span>〜36</span></button>
+    <button class="lv-btn"    id="lb3" onclick="setLv(3)"><span>LV.3</span><span>〜48</span></button>
+    <button class="lv-btn"    id="lb4" onclick="setLv(4)"><span>LV.4</span><span>〜60</span></button>
+    <button class="lv-btn"    id="lb5" onclick="setLv(5)"><span>LV.5</span><span>〜80</span></button>
+  </div>
+  <button class="start-btn" onclick="startGame()">🚀 スタート！</button>
+  <div class="title-tip">
+    ① ペアを2つタップ<br>
+    ② 割る数を選ぶ<br>
+    約分できないペアも混ざってるぞ👀
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="screen hidden" id="scr-game">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTitle()">←</button>
+    <div class="lv-badge" id="lv-badge">LV.1</div>
+    <svg class="timer-svg" viewBox="0 0 38 38">
+      <circle class="timer-bg" cx="19" cy="19" r="15" stroke-width="3" fill="none"/>
+      <circle class="timer-fg" id="tcircle" cx="19" cy="19" r="15" stroke-width="3" fill="none"
+        stroke-dasharray="94.25" stroke-dashoffset="0"/>
+    </svg>
+    <div class="score-disp" id="sdisp">0</div>
+  </div>
+
+  <div class="prog-row">
+    <span class="q-lbl">問題</span>
+    <div class="dots" id="dots"></div>
+    <div class="combo-lbl" id="clbl"></div>
+  </div>
+
+  <div class="phase-bar">
+    <div class="phase-txt select-pair" id="ptxt">① 約分できるペアを選ぼう！</div>
+  </div>
+
+  <div class="arena" id="arena"></div>
+
+  <div class="div-area" id="div-area"></div>
+
+  <div class="hint-area" id="hint-area"></div>
+
+  <div class="action-row">
+    <button class="ok-btn"   id="btn-ok"   onclick="onOk()">✅ これでOK！</button>
+    <button class="skip-btn" id="btn-skip" onclick="onSkip()">🚫 もうできない</button>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div class="screen hidden" id="scr-result">
+  <div class="res-rank" id="rrank">🌟</div>
+  <div class="res-title" id="rtitle">クリア！</div>
+  <div class="res-stats">
+    <div class="scard"><div class="sval" id="rscore">0</div><div class="slbl">スコア</div></div>
+    <div class="scard"><div class="sval" id="racc">0%</div><div class="slbl">正答率</div></div>
+    <div class="scard"><div class="sval" id="rcombo">0</div><div class="slbl">最大コンボ</div></div>
+  </div>
+  <div class="res-cmt" id="rcmt"></div>
+  <div class="res-btns">
+    <button class="rbtn p" onclick="startGame()">🔄 もう一回！</button>
+    <button class="rbtn s" onclick="goTitle()">🏠 タイトルへ</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════
+//  STARS
+// ════════════════════════════════
+(()=>{
+  const c=document.getElementById('stars'),x=c.getContext('2d');
+  let W,H,S=[];
+  const rsz=()=>{W=c.width=innerWidth;H=c.height=innerHeight};
+  rsz();window.addEventListener('resize',rsz);
+  for(let i=0;i<150;i++)S.push({x:Math.random()*3e4%innerWidth,
+    y:Math.random()*3e4%innerHeight,r:Math.random()*1.4+.3,
+    sp:Math.random()*.5+.1,ph:Math.random()*Math.PI*2});
+  let t=0;
+  (function d(){x.clearRect(0,0,W,H);t+=.017;
+    S.forEach(s=>{const a=.12+.68*Math.abs(Math.sin(s.ph+t*s.sp));
+      x.beginPath();x.arc(s.x,s.y,s.r,0,Math.PI*2);
+      x.fillStyle=`rgba(180,200,255,${a})`;x.fill();});
+    requestAnimationFrame(d);})();
+})();
+
+// ════════════════════════════════
+//  AUDIO
+// ════════════════════════════════
+const AC=new(window.AudioContext||window.webkitAudioContext)();
+const res=()=>{if(AC.state==='suspended')AC.resume()};
+function tone(f,tp,dur,vol,dl=0){
+  res();
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g);g.connect(AC.destination);
+  o.type=tp;o.frequency.setValueAtTime(f,AC.currentTime+dl);
+  g.gain.setValueAtTime(0,AC.currentTime+dl);
+  g.gain.linearRampToValueAtTime(vol,AC.currentTime+dl+.01);
+  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+dl+dur);
+  o.start(AC.currentTime+dl);o.stop(AC.currentTime+dl+dur+.02);
+}
+const sTap  =()=>tone(700,'sine',.07,.1);
+const sSel  =()=>{tone(520,'sine',.08,.12);tone(660,'sine',.08,.12,.06)};
+const sOk   =()=>{tone(440,'sine',.1,.14);tone(554,'sine',.1,.14,.08);tone(660,'sine',.15,.14,.16)};
+const sMiss =()=>{tone(220,'sawtooth',.13,.1);tone(175,'sawtooth',.13,.08,.1)};
+const sClear=()=>[523,659,784,1047].forEach((f,i)=>tone(f,'sine',.18,.15,i*.09));
+const sRes  =()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,'triangle',.22,.18,i*.08));
+const sCombo=(n)=>{const b=340+n*30;tone(b,'sine',.09,.17);tone(b*1.25,'sine',.09,.17,.07);tone(b*1.5,'sine',.13,.17,.14)};
+
+// ════════════════════════════════
+//  MATH
+// ════════════════════════════════
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){let t=b;b=a%b;a=t}return a};
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+// n の全約数（2以上）を返す
+function divisors(n){
+  const d=[];
+  for(let i=2;i<=n;i++)if(n%i===0)d.push(i);
+  return d;
+}
+
+// ════════════════════════════════
+//  LEVEL CONFIG
+// ════════════════════════════════
+const LV={
+  1:{max:24, primes:[2,3,5],     maxR:1},
+  2:{max:36, primes:[2,3,5],     maxR:2},
+  3:{max:48, primes:[2,3,5,7],   maxR:2},
+  4:{max:60, primes:[2,3,5,7],   maxR:3},
+  5:{max:80, primes:[2,3,5,7,11],maxR:3},
+};
+
+// ════════════════════════════════
+//  QUESTION GENERATION
+//  n1/d1 × n2/d2
+//  クロスペア: (n1,d2) and (d1,n2)
+//  各値を独立に組み立てて 答えが1/1にならないよう保証
+// ════════════════════════════════
+function makeQ(lv){
+  const cfg=LV[lv];
+  for(let att=0;att<500;att++){
+    // どのペアに約分を仕込むか
+    const do0=Math.random()>.25;   // (n1,d2)に仕込む
+    const do1=Math.random()>.25;   // (d1,n2)に仕込む
+    if(!do0&&!do1)continue;
+
+    const co=()=>rnd(2,8);
+    const p0=do0?pick(cfg.primes):0;
+    const p1=do1?pick(cfg.primes):0;
+
+    let n1,d1,n2,d2;
+    const a=co(),b=co(),c=co(),d=co();
+    if(do0&&do1){ n1=p0*a; d1=p1*b; n2=p1*c; d2=p0*d; }
+    else if(do0){ n1=p0*a; d1=co(); n2=co(); d2=p0*d; }
+    else        { n1=co(); d1=p1*b; n2=p1*c; d2=co(); }
+
+    if([n1,d1,n2,d2].some(v=>v>cfg.max||v<2))continue;
+
+    // 答えを計算
+    const rN=n1*n2, rD=d1*d2, g=gcd(rN,rD);
+    const resN=rN/g, resD=rD/g;
+    if(resN===1&&resD===1)continue;   // 答え1はNG
+
+    // クロス約分できるペアが存在するか
+    const g0=gcd(n1,d2), g1=gcd(d1,n2);
+    if(g0<=1&&g1<=1)continue;
+
+    // ── 割る数の選択肢を作る ──
+    // 正解: 実際にgcdの約数（2以上）→ どれで割ってもOK
+    // ペアは(n1,d2)か(d1,n2)のうち約分できる方を使う
+    // 選択肢: 正解の約数 + ダミー（割れない数）で合計3〜4個
+
+    return {n1,d1,n2,d2,resN,resD,
+      state:{n1,d1,n2,d2},done:[],
+      sel:null};  // sel: 選択中のペア ['n1','d2'] or ['d1','n2']
+  }
+  // fallback
+  return {n1:6,d1:8,n2:4,d2:9,resN:1,resD:3,
+    state:{n1:6,d1:8,n2:4,d2:9},done:[],sel:null};
+}
+
+// ペアのgcdに基づいて割る数ボタンを生成
+// 正解: pairGcdの約数全て / ダミー: 割り切れない数
+function makeDivChoices(pairGcd, n1val, d2val){
+  const correct=divisors(pairGcd); // 正解（全部）
+  // ダミー候補: 2〜13の中で割り切れないもの
+  const dummyPool=[2,3,4,5,6,7,8,9,10,11,12,13]
+    .filter(v=>!correct.includes(v)&&(n1val%v!==0||d2val%v!==0));
+  // ダミーを1〜2個追加
+  const dummies=dummyPool.sort(()=>Math.random()-.5).slice(0,rnd(1,2));
+  const all=[...correct,...dummies].sort((a,b)=>a-b);
+  return {all, correct};
+}
+
+// ════════════════════════════════
+//  STATE
+// ════════════════════════════════
+let G={lv:1,score:0,combo:0,maxCombo:0,correct:0,attempts:0,
+  qIdx:0,qs:[],cur:null,
+  phase:'pair',   // 'pair' | 'div'
+  selPair:null,   // ['n1','d2'] or ['d1','n2'] or null
+  sel1:null,      // 1st tapped key
+  animLock:false,hintTimer:null,hintPhase:0};
+
+let tvIv=null,tvSec=0;
+const TMAX=35,CIRC=94.25;
+
+// ════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════
+const $=id=>document.getElementById(id);
+function showScr(id){
+  ['scr-title','scr-game','scr-result'].forEach(s=>
+    $(s).classList.toggle('hidden',s!==id));
+}
+function setLv(n){
+  G.lv=n;
+  for(let i=1;i<=5;i++)$('lb'+i).classList.toggle('on',i===n);
+  sTap();
+}
+function goTitle(){stopTimer();clearHint();showScr('scr-title');}
+
+// ════════════════════════════════
+//  START
+// ════════════════════════════════
+function startGame(){
+  res();
+  Object.assign(G,{score:0,combo:0,maxCombo:0,correct:0,attempts:0,
+    qIdx:0,cur:null,phase:'pair',selPair:null,sel1:null,
+    animLock:false,hintPhase:0});
+  G.qs=Array.from({length:10},()=>makeQ(G.lv));
+  $('lv-badge').textContent='LV.'+G.lv;
+  buildDots();
+  showScr('scr-game');
+  loadQ(0);
+}
+
+function buildDots(){
+  const el=$('dots');el.innerHTML='';
+  for(let i=0;i<10;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' cur':'');d.id='d'+i;
+    el.appendChild(d);
+  }
+}
+function setDot(i,cls){const d=$('d'+i);if(d)d.className='dot '+cls;}
+
+function loadQ(idx){
+  stopTimer();clearHint();
+  G.qIdx=idx;G.cur=G.qs[idx];
+  G.cur.state={n1:G.cur.n1,d1:G.cur.d1,n2:G.cur.n2,d2:G.cur.d2};
+  G.cur.done=[];G.cur.sel=null;
+  G.phase='pair';G.selPair=null;G.sel1=null;G.animLock=false;G.hintPhase=0;
+  setDot(idx,'cur');
+  buildArena();
+  setPhaseUI('pair');
+  updateBtns();
+  updScore();
+  startTimer();
+  schedHint(5000);
+}
+
+// ════════════════════════════════
+//  PHASE UI
+// ════════════════════════════════
+function setPhaseUI(ph,msg){
+  const el=$('ptxt');
+  el.className='phase-txt '+ph.replace('-','');
+  if(ph==='pair')  el.textContent='① 約分できるペアを選ぼう！';
+  else if(ph==='select-div') el.textContent='② 何で割る？';
+  else if(ph==='correct') el.textContent='⭕ '+(msg||'正解！');
+  else if(ph==='wrong')   el.textContent='❌ '+(msg||'ちがう！');
+  // ただの更新用クラス名 → normalize
+  el.className=el.className.replace('selectdiv','select-div');
+}
+
+// ════════════════════════════════
+//  ARENA
+// ════════════════════════════════
+function buildArena(){
+  const ar=$('arena');ar.innerHTML='';
+  const q=G.cur;
+  const eq=document.createElement('div');eq.className='frac-eq';
+  eq.appendChild(mkFrac('n1','d1',q));
+  const op=document.createElement('div');op.className='op-sym';op.textContent='×';
+  eq.appendChild(op);
+  eq.appendChild(mkFrac('n2','d2',q));
+  ar.appendChild(eq);
+  $('div-area').innerHTML='';
+  $('hint-area').innerHTML='';
+}
+
+function mkFrac(nk,dk,q){
+  const blk=document.createElement('div');blk.className='frac-col';
+  blk.appendChild(mkCell(nk,q));
+  const ln=document.createElement('div');ln.className='frac-line';blk.appendChild(ln);
+  blk.appendChild(mkCell(dk,q));
+  return blk;
+}
+
+function mkCell(key,q){
+  const c=document.createElement('div');
+  c.className='cell idle';c.id='c-'+key;
+  c.textContent=q.state[key];
+  c.addEventListener('pointerdown',e=>{e.preventDefault();onCell(key);});
+  return c;
+}
+
+// ════════════════════════════════
+//  CELL TAP  (phase: pair)
+// ════════════════════════════════
+function onCell(key){
+  res();
+  if(G.animLock||G.phase!=='pair')return;
+  const q=G.cur;if(!q)return;
+  if(q.done.includes(key))return;
+
+  clearHint();
+
+  if(!G.sel1){
+    // 1つ目選択
+    G.sel1=key;
+    $('c-'+key).classList.replace('idle','sel1');
+    sTap();
+    schedHint(5000);
+  } else {
+    if(G.sel1===key){
+      // 同じセルをもう一度 → 選択解除
+      $('c-'+key).classList.replace('sel1','idle');
+      G.sel1=null;return;
+    }
+    // 2つ目タップ → ペア判定
+    const pair=[G.sel1,key].sort().join(',');
+    const VALID_PAIRS=[['n1','d2'],['d1','n2']];
+    const matched=VALID_PAIRS.find(p=>p.slice().sort().join(',')===pair);
+
+    G.attempts++;
+    clearSelUI();
+
+    if(!matched){
+      // ペアじゃない
+      sMiss();flashErr(G.sel1);flashErr(key);
+      G.sel1=null;G.combo=0;addScore(-20,key);
+      setPhaseUI('wrong','クロスのペアを選ぼう！');
+      setTimeout(()=>setPhaseUI('pair'),1200);
+      vib([30,20,30]);return;
+    }
+
+    const [c1,c2]=matched;
+    const v1=q.state[c1],v2=q.state[c2];
+    const g=gcd(v1,v2);
+
+    if(g<=1){
+      // 約分できないペア → ミス
+      sMiss();flashErr(c1);flashErr(c2);
+      G.sel1=null;G.combo=0;addScore(-20,c1);
+      setPhaseUI('wrong','このペアは約分できないよ！');
+      setTimeout(()=>setPhaseUI('pair'),1400);
+      vib([30,20,30]);return;
+    }
+
+    // 約分できるペア → フェーズ2へ
+    G.sel1=null;
+    G.selPair=[c1,c2];
+    G.phase='div';
+    $('c-'+c1).classList.replace('idle','sel2');
+    $('c-'+c2).classList.replace('idle','sel2');
+    sSel();
+    setPhaseUI('select-div');
+    showDivBtns(c1,c2,v1,v2,g);
+    clearHint();
+    schedHint(4000);
+  }
+}
+
+// ════════════════════════════════
+//  DIV BUTTONS
+// ════════════════════════════════
+function showDivBtns(c1,c2,v1,v2,g){
+  const {all,correct}=makeDivChoices(g,v1,v2);
+  const area=$('div-area');area.innerHTML='';
+  const wrap=document.createElement('div');wrap.className='div-btns';
+  all.forEach(n=>{
+    const btn=document.createElement('button');
+    btn.className='div-btn';btn.textContent=n;
+    btn.addEventListener('pointerdown',e=>{
+      e.preventDefault();onDivBtn(n,correct,c1,c2);});
+    wrap.appendChild(btn);
+  });
+  area.appendChild(wrap);
+}
+
+function onDivBtn(n,correct,c1,c2){
+  res();
+  if(G.animLock||G.phase!=='div')return;
+  const q=G.cur;
+  const v1=q.state[c1],v2=q.state[c2];
+
+  if(correct.includes(n)){
+    // 正解
+    G.correct++;G.combo++;if(G.combo>G.maxCombo)G.maxCombo=G.combo;
+    applyReduce(q,c1,c2,n);
+  } else {
+    // 不正解
+    sMiss();G.combo=0;addScore(-20,c1);
+    setPhaseUI('wrong','その数では割れないよ！');
+    vib([30,20,30]);
+    // ボタン再表示（もう一度選ばせる）
+    setTimeout(()=>{
+      setPhaseUI('select-div');
+      clearHint();schedHint(3000);
+    },1000);
+  }
+}
+
+// ════════════════════════════════
+//  APPLY REDUCTION
+// ════════════════════════════════
+function applyReduce(q,c1,c2,div){
+  G.animLock=true;
+  $('div-area').innerHTML='';
+  const nv1=q.state[c1]/div, nv2=q.state[c2]/div;
+  q.state[c1]=nv1;q.state[c2]=nv2;q.done.push(c1,c2);
+
+  sOk();addScore(100,c1);
+  drawLine($('c-'+c1),$('c-'+c2));
+
+  setTimeout(()=>{
+    [c1,c2].forEach((k,i)=>{
+      const el=$('c-'+k);
+      el.classList.remove('sel2','idle','hint-s','hint-h');
+      el.classList.add('done');
+      el.textContent=i===0?nv1:nv2;
+      const b=document.createElement('div');b.className='rbadge';
+      b.textContent='÷'+div;el.appendChild(b);
+    });
+    spawnPfx($('c-'+c1));
+    if(G.combo>=2)spawnCombo(G.combo);
+    G.animLock=false;
+    G.phase='pair';G.selPair=null;
+    updScore();updateBtns();
+    setPhaseUI('correct');
+    clearHint();
+    // まだ約分できるペアがあれば次へ
+    if(hasReducible(q)){
+      setTimeout(()=>setPhaseUI('pair'),900);
+      schedHint(5000);
+    } else {
+      // 自動クリア
+      setTimeout(()=>{
+        sClear();showAns(q);stopTimer();
+        setTimeout(nextQ,2100);
+      },600);
+    }
+  },300);
+}
+
+// ════════════════════════════════
+//  OK / SKIP
+// ════════════════════════════════
+function onOk(){
+  res();
+  const q=G.cur;if(!q)return;
+  if(G.phase!=='pair'){return;}
+  if(hasReducible(q)){
+    sMiss();vib([40,20,40]);
+    setPhaseUI('wrong','まだ約分できるペアがあるよ！');
+    addScore(-20,'n1');G.combo=0;updScore();
+    clearHint();applyHint(q,3);
+    setTimeout(()=>setPhaseUI('pair'),1400);
+    return;
+  }
+  G.correct++;
+  sClear();showAns(q);stopTimer();clearHint();
+  setTimeout(nextQ,2100);
+}
+
+function onSkip(){
+  res();
+  const q=G.cur;if(!q)return;
+  if(G.phase==='div'){
+    // 割る数選択中のスキップ → ペア選択に戻る
+    G.phase='pair';G.selPair=null;
+    clearSelUI();$('div-area').innerHTML='';
+    setPhaseUI('pair');return;
+  }
+  G.attempts++;
+  if(hasReducible(q)){
+    sMiss();vib([40,20,40]);
+    setPhaseUI('wrong','まだ約分できるよ！ヒントを見てね');
+    addScore(-20,'n1');G.combo=0;updScore();
+    clearHint();applyHint(q,3);
+    setTimeout(()=>setPhaseUI('pair'),1400);
+    return;
+  }
+  sClear();showAns(q);stopTimer();clearHint();
+  setTimeout(nextQ,2100);
+}
+
+// ════════════════════════════════
+//  HELPERS
+// ════════════════════════════════
+function hasReducible(q){
+  for(const[c1,c2]of[['n1','d2'],['d1','n2']])
+    if(!q.done.includes(c1)&&!q.done.includes(c2)&&gcd(q.state[c1],q.state[c2])>1)return true;
+  return false;
+}
+function clearSelUI(){
+  document.querySelectorAll('.cell.sel1,.cell.sel2').forEach(el=>{
+    el.classList.remove('sel1','sel2');
+    if(!el.classList.contains('done'))el.classList.add('idle');
+  });
+  G.sel1=null;
+}
+function updateBtns(){
+  const can=hasReducible(G.cur);
+  $('btn-ok').disabled=can;
+}
+function flashErr(key){
+  const el=$('c-'+key);if(!el)return;
+  el.style.background='rgba(255,51,102,.3)';
+  el.style.borderColor='var(--nr)';
+  el.style.boxShadow='0 0 18px rgba(255,51,102,.5)';
+  setTimeout(()=>{el.style.background='';el.style.borderColor='';el.style.boxShadow='';},420);
+}
+
+// ════════════════════════════════
+//  ANSWER PANEL
+// ════════════════════════════════
+function showAns(q){
+  const rN=q.state.n1*q.state.n2, rD=q.state.d1*q.state.d2, g=gcd(rN,rD);
+  const aN=rN/g, aD=rD/g;
+  const ar=$('arena');
+  const old=ar.querySelector('.ans-panel');if(old)old.remove();
+  const p=document.createElement('div');p.className='ans-panel';
+  if(aD===1){
+    p.innerHTML=`<div class="ans-lbl">✨ 答え</div>
+      <div style="font-size:clamp(40px,11vw,64px);font-weight:900;color:var(--ng)">${aN}</div>`;
+  }else{
+    p.innerHTML=`<div class="ans-lbl">✨ 答え</div>
+      <div class="ans-frac">
+        <div class="ans-n">
+          <span class="ans-top">${aN}</span>
+          <div class="ans-line"></div>
+          <span class="ans-bot">${aD}</span>
+        </div>
+      </div>`;
+  }
+  ar.appendChild(p);
+}
+
+// ════════════════════════════════
+//  LINE ANIMATION
+// ════════════════════════════════
+function drawLine(e1,e2){
+  const ar=$('arena');ar.style.position='relative';
+  const a=ar.getBoundingClientRect();
+  const r1=e1.getBoundingClientRect(),r2=e2.getBoundingClientRect();
+  const x1=r1.left+r1.width/2-a.left,y1=r1.top+r1.height/2-a.top;
+  const x2=r2.left+r2.width/2-a.left,y2=r2.top+r2.height/2-a.top;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.style.cssText=`position:absolute;top:0;left:0;width:${ar.offsetWidth}px;height:${ar.offsetHeight}px;pointer-events:none;z-index:5;overflow:visible`;
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  const len=Math.hypot(x2-x1,y2-y1);
+  Object.entries({x1,y1,x2,y2,stroke:'#00ff99','stroke-width':'4','stroke-linecap':'round',
+    'stroke-dasharray':len,'stroke-dashoffset':len}).forEach(([k,v])=>line.setAttribute(k,v));
+  const st=document.createElement('style');
+  st.textContent='@keyframes dl{to{stroke-dashoffset:0}}';
+  line.style.animation='dl .42s ease forwards';
+  document.head.appendChild(st);
+  svg.appendChild(line);ar.appendChild(svg);
+  setTimeout(()=>{svg.remove();st.remove();},2000);
+}
+
+// ════════════════════════════════
+//  NEXT Q
+// ════════════════════════════════
+function nextQ(){
+  setDot(G.qIdx,'done');
+  if(G.qIdx+1>=10){showResult();return;}
+  const ov=$('nov');ov.classList.add('f');
+  setTimeout(()=>{ov.classList.remove('f');loadQ(G.qIdx+1);},230);
+}
+
+// ════════════════════════════════
+//  SCORE
+// ════════════════════════════════
+function addScore(pts,key){
+  const b=pts>0?Math.round(pts*(1+G.combo*.1)):pts;
+  G.score=Math.max(0,G.score+b);
+  const el=$('c-'+key);
+  if(el){
+    const r=el.getBoundingClientRect();
+    const p=document.createElement('div');p.className='spop';
+    p.style.left=(r.left+r.width/2-20)+'px';p.style.top=(r.top-6)+'px';
+    p.style.color=pts>0?'var(--ng)':'var(--nr)';
+    p.textContent=pts>0?'+'+b:b;
+    document.body.appendChild(p);setTimeout(()=>p.remove(),900);
+  }
+}
+function updScore(){
+  $('sdisp').textContent=G.score;
+  const cl=$('clbl');
+  if(G.combo>=2){cl.textContent=G.combo+' COMBO!';
+    cl.style.color=G.combo>=5?'var(--ny)':'var(--np)';}
+  else cl.textContent='';
+}
+function spawnPfx(el){
+  const r=el.getBoundingClientRect();
+  const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  const cols=['var(--nb)','var(--ng)','var(--ny)','var(--np)'];
+  for(let i=0;i<12;i++){
+    const p=document.createElement('div');p.className='particle';
+    const sz=rnd(4,10);p.style.cssText=`width:${sz}px;height:${sz}px;
+      left:${cx-sz/2+rnd(-32,32)}px;top:${cy-sz/2}px;
+      background:${pick(cols)};animation-duration:${rnd(360,760)}ms`;
+    document.body.appendChild(p);setTimeout(()=>p.remove(),860);
+  }
+}
+function spawnCombo(n){
+  const msgs=['','','COMBO!','NICE!','COOL!','HOT!!','FIRE!🔥','神業!!⚡','ULTRA!!🌟','天才!!!🪐'];
+  const b=document.createElement('div');b.className='cburst';
+  b.textContent=msgs[Math.min(n,msgs.length-1)]||(n+'COMBO!');
+  document.body.appendChild(b);sCombo(n);setTimeout(()=>b.remove(),1200);
+}
+
+// ════════════════════════════════
+//  HINT
+// ════════════════════════════════
+function clearHint(){
+  if(G.hintTimer){clearTimeout(G.hintTimer);G.hintTimer=null;}
+  document.querySelectorAll('.cell').forEach(el=>
+    el.classList.remove('hint-s','hint-h'));
+  const ha=$('hint-area');if(ha)ha.innerHTML='';
+}
+function schedHint(delay){
+  G.hintTimer=setTimeout(()=>{
+    G.hintPhase++;applyHint(G.cur,G.hintPhase);
+    if(G.hintPhase<3)schedHint(4000);
+  },delay);
+}
+function applyHint(q,phase){
+  if(!q)return;
+  // 約分できるペアを探す
+  let pair=null;
+  for(const[c1,c2]of[['n1','d2'],['d1','n2']])
+    if(!q.done.includes(c1)&&!q.done.includes(c2)&&gcd(q.state[c1],q.state[c2])>1)
+      {pair=[c1,c2,gcd(q.state[c1],q.state[c2])];break;}
+  if(!pair)return;
+  const[c1,c2,g]=pair;
+  if(phase===1){
+    $('c-'+c1)?.classList.add('hint-s');
+    $('c-'+c2)?.classList.add('hint-s');
+  }else if(phase===2){
+    $('c-'+c1)?.classList.replace('hint-s','hint-h');
+    $('c-'+c2)?.classList.replace('hint-s','hint-h');
+  }else{
+    const ha=$('hint-area');if(!ha)return;
+    ha.innerHTML='';
+    const t=document.createElement('div');t.className='hint-txt';
+    t.textContent=`💡 ${g}で割れるよ！`;ha.appendChild(t);
+  }
+}
+
+// ════════════════════════════════
+//  TIMER
+// ════════════════════════════════
+function stopTimer(){clearInterval(tvIv);}
+function startTimer(){
+  stopTimer();tvSec=0;
+  const c=$('tcircle');
+  tvIv=setInterval(()=>{
+    tvSec++;
+    const p=tvSec/TMAX;
+    c.setAttribute('stroke-dashoffset',CIRC*p);
+    c.setAttribute('stroke',p<.4?'var(--nb)':p<.72?'var(--ny)':'var(--nr)');
+    if(tvSec>=TMAX){
+      stopTimer();setDot(G.qIdx,'miss');G.combo=0;
+      setTimeout(nextQ,300);
+    }
+  },1000);
+}
+
+// ════════════════════════════════
+//  VIBRATE
+// ════════════════════════════════
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+
+// ════════════════════════════════
+//  RESULT
+// ════════════════════════════════
+const RANKS=[
+  {m:0,e:'🪨',t:'宇宙の石ころ'},{m:20,e:'🌙',t:'月見習い'},
+  {m:40,e:'⭐',t:'星の卵'},{m:60,e:'🌟',t:'光る星'},
+  {m:75,e:'✨',t:'輝く星'},{m:85,e:'🚀',t:'宇宙飛行士'},
+  {m:93,e:'🛸',t:'銀河の戦士'},{m:97,e:'🌠',t:'約分マスター'},
+  {m:100,e:'🪐',t:'銀河の約分神'}
+];
+function showResult(){
+  stopTimer();clearHint();
+  const acc=G.attempts>0?Math.round(G.correct/G.attempts*100):0;
+  const rank=[...RANKS].reverse().find(r=>acc>=r.m)||RANKS[0];
+  $('rrank').textContent=rank.e;
+  $('rtitle').textContent=rank.t;
+  $('rscore').textContent=G.score;
+  $('racc').textContent=acc+'%';
+  $('rcombo').textContent=G.maxCombo;
+  $('rcmt').textContent=
+    acc>=95?'完璧！銀河一の約分戦士だ✨':
+    acc>=80?'すごい！あと少しでパーフェクト🚀':
+    acc>=65?'いい調子！もう一回挑戦しよう⭐':
+    acc>=50?'まだまだ伸びしろあり！💪':
+    'ヒントをうまく使って練習しよう🌙';
+  sRes();showScr('scr-result');launchConfetti();
+}
+function launchConfetti(){
+  const cs=['#00d4ff','#00ff99','#ffdd00','#cc66ff','#ff3366','#ff9900'];
+  for(let i=0;i<60;i++)setTimeout(()=>{
+    const p=document.createElement('div');
+    const rot=rnd(180,540),dur=rnd(900,1900);
+    p.style.cssText=`position:fixed;left:${rnd(5,95)}vw;top:-14px;
+      width:${rnd(6,12)}px;height:${rnd(6,12)}px;
+      border-radius:${Math.random()>.5?'50%':'3px'};
+      background:${pick(cs)};pointer-events:none;z-index:999;
+      animation:cf${i} ${dur}ms ease forwards`;
+    const s=document.createElement('style');
+    s.textContent=`@keyframes cf${i}{0%{transform:translateY(0) rotate(0);opacity:1}
+      100%{transform:translateY(${rnd(62,108)}vh) rotate(${rot}deg);opacity:0}}`;
+    document.head.appendChild(s);document.body.appendChild(p);
+    setTimeout(()=>{p.remove();s.remove();},dur+100);
+  },i*34);
+}
+
+// ════════════════════════════════
+//  INIT
+// ════════════════════════════════
+setLv(1);
+document.addEventListener('dblclick',e=>e.preventDefault());
+document.addEventListener('touchstart',e=>{
+  if(e.touches.length>1)e.preventDefault();},{passive:false});
+</script>
+</body>
+</html>
