@@ -237,6 +237,22 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
   opacity:0;pointer-events:none;transition:opacity .22s}
 #nov.f{opacity:.72}
 
+/* ── BADGE GALLERY ── */
+.badge-open-btn{background:rgba(204,102,255,.12);border:1px solid rgba(204,102,255,.55);
+  color:#e6c8ff;border-radius:50px;padding:10px 22px;font-size:13px;font-weight:900;
+  cursor:pointer;font-family:'Zen Kaku Gothic New',sans-serif;transition:all .2s}
+.badge-open-btn:hover{transform:scale(1.04);border-color:var(--np);box-shadow:0 0 18px rgba(204,102,255,.35)}
+#badge-gallery{background:rgba(10,10,26,.96);z-index:300;justify-content:flex-start;
+  padding:24px 16px;overflow-y:auto;gap:14px}
+.gallery-head{width:min(560px,94vw);display:flex;align-items:center;justify-content:space-between}
+.gallery-title{font-size:22px;font-weight:900;color:var(--ny)}
+.gallery-close{width:38px;height:38px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:20px;cursor:pointer}
+.gallery-note{font-size:12px;color:var(--muted);text-align:center}
+.gallery-grid{width:min(560px,94vw);display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.gallery-grid .badge-card{min-height:124px;display:flex;flex-direction:column;justify-content:center}
+@media(max-width:390px){.gallery-grid{grid-template-columns:repeat(3,1fr)}}
+
 /* ── BADGES ── */
 .badge-panel{width:min(560px,94vw);background:rgba(17,17,40,.88);border:1px solid var(--border);
   border-radius:var(--r);padding:14px 12px;margin-top:2px}
@@ -276,6 +292,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
     <button class="lv-btn"    id="lb5" onclick="setLv(5)"><span>LV.5</span><span>〜80</span></button>
   </div>
   <button class="start-btn" onclick="startGame()">🚀 スタート！</button>
+  <button class="badge-open-btn" onclick="openBadgeGallery()">🏅 バッジコレクション</button>
   <div class="title-tip">
     ① ペアを2つタップ<br>
     ② 割る数を選ぶ<br>
@@ -338,6 +355,16 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
     <button class="rbtn p" onclick="startGame()">🔄 もう一回！</button>
     <button class="rbtn s" onclick="goTitle()">🏠 タイトルへ</button>
   </div>
+</div>
+
+<!-- ══ BADGE GALLERY ══ -->
+<div class="screen hidden" id="badge-gallery" onclick="if(event.target===this)closeBadgeGallery()">
+  <div class="gallery-head">
+    <div class="gallery-title">🏅 バッジコレクション</div>
+    <button class="gallery-close" onclick="closeBadgeGallery()" aria-label="閉じる">×</button>
+  </div>
+  <div class="gallery-note">学習を進めて、バッジを集めよう！</div>
+  <div class="gallery-grid" id="gallery-grid"></div>
 </div>
 
 <script>
@@ -1004,6 +1031,25 @@ function renderBadges(state){
       '<img src="'+BADGE_BASE+b.path+'" alt="'+b.name+'">'+
       '<div class="badge-name">'+b.name+'</div>'+
       (fresh?'<div class="badge-new">NEW!</div>':'')+'</div>';
+  }).join('');
+}
+
+function openBadgeGallery(){
+  renderBadgeCatalog();
+  showScr('badge-gallery');
+}
+function closeBadgeGallery(){showScr('scr-title');}
+function renderBadgeCatalog(){
+  const grid=$('gallery-grid');
+  if(!grid)return;
+  const unlocked=readBadgeIds();
+  grid.innerHTML=BADGES.map(b=>{
+    const got=unlocked.includes(b.id);
+    return '<div class="badge-card '+(got?'':'locked')+'>'+
+      '<img src="'+BADGE_BASE+b.path+'" alt="'+(got?b.name:'未獲得バッジ')+'">'+
+      '<div class="badge-name">'+(got?b.name:'???')+'</div>'+
+      (got?'<div class="badge-new">獲得済み</div>':'<div class="badge-new">未獲得</div>')+
+      '</div>';
   }).join('');
 }
 
